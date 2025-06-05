@@ -43,17 +43,73 @@ connection_last_modified = {}
 # OpenVPN 실행 파일 찾기
 def find_openvpn_path():
     """운영체제에 맞게 OpenVPN 실행 파일 경로 찾기"""
+    # 환경 변수로 지정된 경로 우선 확인
+    env_path = os.environ.get('OPENVPN_PATH')
+    if env_path and os.path.exists(env_path):
+        logger.info(f"환경 변수에서 OpenVPN 경로 발견: {env_path}")
+        return env_path
+    
     if IS_WINDOWS:
         # Windows에서의 일반적인 OpenVPN 설치 경로들
         possible_paths = [
             r'C:\Program Files\OpenVPN\bin\openvpn.exe',
             r'C:\Program Files (x86)\OpenVPN\bin\openvpn.exe',
             os.environ.get('PROGRAMFILES', '') + r'\OpenVPN\bin\openvpn.exe',
-            os.environ.get('PROGRAMFILES(X86)', '') + r'\OpenVPN\bin\openvpn.exe'
+            os.environ.get('PROGRAMFILES(X86)', '') + r'\OpenVPN\bin\openvpn.exe',
+            # OpenVPN Connect (새로운 클라이언트)
+            r'C:\Program Files\OpenVPN Connect\openvpn.exe',
+            r'C:\Program Files (x86)\OpenVPN Connect\openvpn.exe',
+            # 사용자 디렉토리 설치
+            os.path.expanduser(r'~\AppData\Local\Programs\OpenVPN\bin\openvpn.exe'),
+            os.path.expanduser(r'~\AppData\Local\Programs\OpenVPN Connect\openvpn.exe'),
+            # Chocolatey 설치 경로
+            r'C:\ProgramData\chocolatey\bin\openvpn.exe',
+            # 기타 가능한 경로들
+            r'D:\Program Files\OpenVPN\bin\openvpn.exe',
+            r'D:\Program Files (x86)\OpenVPN\bin\openvpn.exe',
         ]
         for path in possible_paths:
-            if os.path.exists(path):
+            if path and os.path.exists(path):
+                logger.info(f"OpenVPN 실행 파일 발견: {path}")
                 return path
+        
+        # PATH 환경 변수에서 검색
+        try:
+            result = subprocess.run(['where', 'openvpn.exe'], 
+                                  capture_output=True, 
+                                  text=True, 
+                                  timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                paths = result.stdout.strip().split('\n')
+                for path in paths:
+                    if os.path.exists(path):
+                        logger.info(f"PATH에서 OpenVPN 발견: {path}")
+                        return path
+        except Exception as e:
+            logger.debug(f"where 명령어 실행 실패: {str(e)}")
+        
+        # 레지스트리에서 OpenVPN 설치 경로 찾기 시도
+        try:
+            import winreg
+            registry_paths = [
+                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\OpenVPN"),
+                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\OpenVPN"),
+                (winreg.HKEY_CURRENT_USER, r"SOFTWARE\OpenVPN"),
+            ]
+            for hkey, subkey in registry_paths:
+                try:
+                    with winreg.OpenKey(hkey, subkey) as key:
+                        install_path, _ = winreg.QueryValueEx(key, "")
+                        openvpn_exe = os.path.join(install_path, "bin", "openvpn.exe")
+                        if os.path.exists(openvpn_exe):
+                            logger.info(f"레지스트리에서 OpenVPN 발견: {openvpn_exe}")
+                            return openvpn_exe
+                except:
+                    continue
+        except Exception as e:
+            logger.debug(f"레지스트리 검색 실패: {str(e)}")
+        
+        logger.error("Windows에서 OpenVPN 실행 파일을 찾을 수 없습니다.")
         return None
     elif IS_MACOS:
         # macOS - Homebrew 설치 경로 확인

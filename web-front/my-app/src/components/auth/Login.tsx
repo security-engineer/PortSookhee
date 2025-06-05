@@ -40,7 +40,7 @@ const Login = () => {
       // API 주소 결정
       const apiUrl = process.env.REACT_APP_API_BASE_URL 
         ? `${process.env.REACT_APP_API_BASE_URL}/auth/login` 
-        : '/api/auth/login';
+        : 'http://localhost:5000/api/auth/login';
       
       console.log('로그인 API 요청 주소:', apiUrl);
       console.log('로그인 요청 데이터:', { username, password });

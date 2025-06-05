@@ -7,7 +7,6 @@ import MainLayout from '../layouts/MainLayout';
 import Login from '../components/auth/Login';
 import Register from '../components/auth/Register';
 import Topology from '../components/topology/Topology';
-import ScanForm from '../components/topology/ScanForm';
 import VPNManager from '../components/vpn/VPNManager';
 import TestPage from '../components/test/TestPage';
 
@@ -47,11 +46,6 @@ const AppRoutes: React.FC = () => {
             <Topology />
           </PrivateRoute>
         } />
-        {/* <Route path="/scan" element={
-          <PrivateRoute>
-            <ScanForm />
-          </PrivateRoute>
-        } /> */}
         <Route path="/vpn" element={
           <MemberOnlyRoute>
             <VPNManager />

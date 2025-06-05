@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import './Topology.css';
 import TopologyDetailsPanel from './TopologyDetailsPanel';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useLocation } from 'react-router-dom';
 
 /**
  * Topology.tsx – fully‑working, self‑debugging demo.
@@ -91,6 +91,7 @@ interface TopologyProps {
 
 const Topology: React.FC<TopologyProps> = ({ initialElements }) => {
   const { onNodeSelect } = useOutletContext<OutletContextType>();
+  const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<LayoutType>('grid');
   const [nodeShapes, setNodeShapes] = useState<Record<string, NodeShape>>({
@@ -98,11 +99,22 @@ const Topology: React.FC<TopologyProps> = ({ initialElements }) => {
     router: 'diamond',
     switch: 'rectangle'
   });
-  const [elements, setElements] = useState<ElementsDefinition>(initialElements || {
-    nodes: [
-      { data: { id: 'myhost', name: 'My Host', type: 'host', ip: '127.0.0.1' } },
-    ],
-    edges: [],
+  const [elements, setElements] = useState<ElementsDefinition>(() => {
+    // localStorage에서 저장된 노드 읽어오기
+    const savedNodes = JSON.parse(localStorage.getItem('topologyNodes') || '[]');
+    const nodes = savedNodes.map((node: NodeData) => ({
+      data: node
+    }));
+    
+    // 기본 노드 추가 (저장된 노드가 없을 경우)
+    if (nodes.length === 0) {
+      nodes.push({ data: { id: 'myhost', name: 'My Host', type: 'host', ip: '127.0.0.1' } });
+    }
+    
+    return {
+      nodes: nodes,
+      edges: [],
+    };
   });
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -127,6 +139,39 @@ const Topology: React.FC<TopologyProps> = ({ initialElements }) => {
       nodeDimensionsIncludeLabels: true
     },
   };
+
+  // 커스텀 이벤트 리스너 추가
+  useEffect(() => {
+    const handleNodeAdded = (event: CustomEvent) => {
+      const newNode = event.detail.node;
+      
+      if (cyRef.current) {
+        const existingNode = cyRef.current.getElementById(newNode.id);
+        if (existingNode.length === 0) {
+          cyRef.current.add({
+            data: newNode
+          });
+          
+          // 레이아웃 다시 실행
+          cyRef.current.layout(layoutOptions[layout]).run();
+          
+          // 새로 추가된 노드 선택
+          setTimeout(() => {
+            const addedNode = cyRef.current?.getElementById(newNode.id);
+            if (addedNode) {
+              addedNode.select();
+            }
+          }, 500);
+        }
+      }
+    };
+    
+    window.addEventListener('topologyNodeAdded', handleNodeAdded as EventListener);
+    
+    return () => {
+      window.removeEventListener('topologyNodeAdded', handleNodeAdded as EventListener);
+    };
+  }, [layout, layoutOptions]);
 
   // Initialize Cytoscape
   const initCytoscape = useCallback(() => {
@@ -275,12 +320,23 @@ const Topology: React.FC<TopologyProps> = ({ initialElements }) => {
     }));
   };
 
+  const handleClearTopology = () => {
+    if (window.confirm('토폴로지의 모든 노드를 삭제하시겠습니까?')) {
+      localStorage.removeItem('topologyNodes');
+      if (cyRef.current) {
+        cyRef.current.elements().remove();
+      }
+      setElements({ nodes: [], edges: [] });
+    }
+  };
+
   return (
     <div className="topology-container">
       <div className="controls-panel">
         <h4>레이아웃</h4>
         <button onClick={() => handleLayoutChange('grid')} disabled={layout === 'grid'}>그리드</button>
         <button onClick={() => handleLayoutChange('circle')} disabled={layout === 'circle'}>원형</button>
+        <button onClick={handleClearTopology} className="clear-btn">초기화</button>
       </div>
       <div ref={containerRef} className="topology-graph" />
     </div>

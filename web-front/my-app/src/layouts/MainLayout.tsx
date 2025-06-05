@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { NodeData } from '../components/topology/Topology';
 import TopologyDetailsPanel from '../components/topology/TopologyDetailsPanel';
-import ScanForm from '../components/topology/ScanForm';
+import ScanForm from '../components/scan/ScanForm';
 import './MainLayout.css';
 
 const MainLayout: React.FC = () => {
@@ -59,7 +59,7 @@ const MainLayout: React.FC = () => {
               {rightPanelContent === 'details' ? (
                 <TopologyDetailsPanel selectedNode={selectedNode} />
               ) : (
-                <ScanForm />
+                <ScanForm onNodeSelect={handleNodeSelect} />
               )}
             </div>
           </div>

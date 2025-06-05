@@ -70,4 +70,45 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin: 1rem;
+}
+
+/* 토폴로지 메시지 스타일 */
+.topology-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #10b981;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 초기화 버튼 스타일 */
+.clear-btn {
+  background-color: #ef4444;
+  color: white;
+  margin-left: 10px;
+}
+
+.clear-btn:hover {
+  background-color: #dc2626;
+}
+
+.clear-btn:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
 } 

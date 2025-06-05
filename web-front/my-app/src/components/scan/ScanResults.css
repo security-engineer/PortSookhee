@@ -1,0 +1,381 @@
+/* 스캔 결과 컨테이너 */
+.scan-results {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.scan-results h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.host-count {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-hosts-message {
+  display: flex;
+  align-items: center;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.no-host-icon {
+  font-size: 32px;
+  margin-right: 20px;
+  color: #757575;
+  background-color: #eee;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.no-host-text {
+  flex: 1;
+}
+
+.no-host-text p {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+  font-weight: 500;
+}
+
+.no-host-text .help-text {
+  font-weight: normal;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.no-host-text ul {
+  margin-top: 5px;
+  padding-left: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.no-host-text li {
+  margin-bottom: 3px;
+}
+
+.scan-results.error-state {
+  padding: 20px;
+  background-color: #fff3f3;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.scan-results.error-state .error-message {
+  color: #c62828;
+}
+
+/* 호스트 카드 */
+.hosts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 20px;
+}
+
+.host-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s;
+}
+
+.host-card:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 호스트 헤더 */
+.host-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  background-color: #f5f7fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.host-title {
+  flex-grow: 1;
+}
+
+.host-title h4 {
+  margin: 0 0 5px;
+  color: #2c3e50;
+}
+
+.host-ip {
+  font-size: 14px;
+  color: #6c757d;
+  font-family: monospace;
+}
+
+.os-info {
+  padding: 4px 8px;
+  background-color: #e9f5e9;
+  border-radius: 4px;
+  font-size: 13px;
+  max-width: 180px;
+  text-align: right;
+}
+
+.os-label {
+  font-weight: bold;
+  color: #2e7d32;
+  margin-right: 4px;
+}
+
+.os-accuracy {
+  font-size: 11px;
+  color: #5e8c5e;
+  margin-left: 4px;
+}
+
+/* 호스트 본문 */
+.host-body {
+  padding: 15px;
+}
+
+/* 포트 섹션 */
+.ports-section h5,
+.vulnerabilities-section h5 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #2c3e50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ports-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 15px;
+}
+
+.ports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ports-table th {
+  text-align: left;
+  background-color: #f1f1f1;
+  padding: 8px;
+  font-weight: bold;
+  color: #555;
+}
+
+.ports-table td {
+  padding: 8px;
+  border-top: 1px solid #eee;
+  color: #333;
+}
+
+.ports-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.no-ports-message {
+  color: #6c757d;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+/* 취약점 섹션 */
+.vulnerabilities-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px dashed #ddd;
+}
+
+.vulnerability-badges {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.vuln-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.vuln-badge.high {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.vuln-badge.medium {
+  background-color: #fff8e1;
+  color: #f57f17;
+  border: 1px solid #ffe082;
+}
+
+.vuln-badge.low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.vulnerabilities-list {
+  margin-top: 10px;
+}
+
+.vulnerability-item {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  border-left: 4px solid #ddd;
+}
+
+.vulnerability-item.high {
+  background-color: #ffebee;
+  border-left-color: #f44336;
+}
+
+.vulnerability-item.medium {
+  background-color: #fff8e1;
+  border-left-color: #ffa000;
+}
+
+.vulnerability-item.low {
+  background-color: #e8f5e9;
+  border-left-color: #4caf50;
+}
+
+.vulnerability-severity {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.vulnerability-item.high .vulnerability-severity {
+  color: #c62828;
+}
+
+.vulnerability-item.medium .vulnerability-severity {
+  color: #f57f17;
+}
+
+.vulnerability-item.low .vulnerability-severity {
+  color: #2e7d32;
+}
+
+.vulnerability-description {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.vulnerability-cve {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.vulnerability-cve a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.vulnerability-cve a:hover {
+  text-decoration: underline;
+}
+
+/* 호스트 푸터 */
+.host-footer {
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+}
+
+.host-detail {
+  margin-bottom: 4px;
+}
+
+.detail-label {
+  font-weight: bold;
+  margin-right: 5px;
+  color: #555;
+}
+
+.mac-vendor {
+  margin-left: 5px;
+  color: #777;
+}
+
+.scan-time {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #999;
+}
+
+/* 반응형 디자인 */
+@media screen and (max-width: 768px) {
+  .hosts-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .host-header {
+    flex-direction: column;
+  }
+  
+  .os-info {
+    margin-top: 10px;
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
+/* 호스트 추가 정보 메시지 스타일 */
+.host-info-message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding: 12px;
+  background-color: #f0f8ff;
+  border-left: 4px solid #1e88e5;
+  border-radius: 4px;
+}
+
+.info-icon {
+  font-size: 18px;
+  margin-right: 10px;
+}
+
+.info-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #444;
+} 

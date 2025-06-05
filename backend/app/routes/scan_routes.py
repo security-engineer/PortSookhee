@@ -5,7 +5,7 @@ import traceback
 from ..scan import (
     ScanMode, ScanStatus, is_valid_target,
     start_scan_task, get_scan_status, check_nmap_installed,
-    NMAP_AVAILABLE, test_scan, generate_test_data
+    NMAP_AVAILABLE, test_scan, generate_test_data, scan_results
 )
 from bson.objectid import ObjectId
 from bson.json_util import dumps, loads
@@ -13,10 +13,22 @@ from bson.json_util import dumps, loads
 scan_bp = Blueprint('scan', __name__)
 logger = logging.getLogger('app.scan')
 
+# 디버그 모드 설정
+DEBUG_MODE = True
+
 # 스캔 작업 시작 API
-@scan_bp.route('/', methods=['POST'])
+@scan_bp.route('/', methods=['POST', 'OPTIONS'])
 def start_scan():
-    """스캔 작업을 시작하는 API"""
+    """스캔 작업을 시작하는 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        # CORS 헤더 추가
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+    
     try:
         # 요청 로깅
         logger.info(f"스캔 요청 받음: {request.method} {request.path}")
@@ -141,13 +153,22 @@ def start_scan():
         return jsonify({
             'error': 'Internal Server Error',
             'message': f'스캔 시작에 실패했습니다: {str(e)}',
-            'details': tb_str if current_app.config.get('DEBUG', False) else None
+            'details': tb_str if DEBUG_MODE or current_app.config.get('DEBUG', False) else None
         }), 500
 
 # 스캔 상태 조회 API
-@scan_bp.route('/<scan_id>', methods=['GET'])
+@scan_bp.route('/<scan_id>', methods=['GET', 'OPTIONS'])
 def check_scan_status(scan_id):
-    """스캔 작업의 상태를 조회하는 API"""
+    """스캔 작업의 상태를 조회하는 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        # CORS 헤더 추가
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+        
     try:
         # 요청 로깅
         logger.info(f"스캔 상태 조회: {scan_id}")
@@ -178,25 +199,36 @@ def check_scan_status(scan_id):
                 'message': '오류가 발생하여 테스트 데이터를 반환합니다.'
             })
         
-        # 완료된 스캔의 경우 MongoDB에 결과 저장 (optional)
-        if scan_status['status'] == ScanStatus.COMPLETED and \
-           hasattr(g, 'mongodb_available') and g.mongodb_available:
-            try:
-                db = current_app.extensions['pymongo'].db
-                db.scans.update_one(
-                    {'_id': scan_id},
-                    {'$set': {
-                        'status': ScanStatus.COMPLETED,
-                        'completed_at': ObjectId().generation_time,
-                        'duration': scan_status.get('duration', 0),
-                        'result': loads(dumps(scan_status.get('result', {})))
-                    }}
-                )
-            except Exception as e:
-                logger.error(f"MongoDB 업데이트 오류 (무시됨): {str(e)}")
-                # MongoDB 오류는 무시하고 계속 진행
+        # 완료된 스캔의 경우 MongoDB에 결과 저장 시도 (optional)
+        if scan_status['status'] == ScanStatus.COMPLETED:
+            # 먼저 메모리에 결과 저장 확인
+            if scan_id in scan_results:
+                logger.info(f"스캔 결과가 메모리에 존재합니다: {scan_id}")
+            
+            # MongoDB에 저장 시도
+            if hasattr(g, 'mongodb_available') and g.mongodb_available:
+                try:
+                    db = current_app.extensions['pymongo'].db
+                    db.scans.update_one(
+                        {'_id': scan_id},
+                        {'$set': {
+                            'status': ScanStatus.COMPLETED,
+                            'completed_at': ObjectId().generation_time,
+                            'duration': scan_status.get('duration', 0),
+                            'result': loads(dumps(scan_status.get('result', {})))
+                        }}
+                    )
+                    logger.info(f"MongoDB 스캔 결과 업데이트 성공: {scan_id}")
+                except Exception as e:
+                    logger.error(f"MongoDB 업데이트 오류 (메모리 상태 유지): {str(e)}")
+                    # MongoDB 오류는 무시하고 계속 진행
+            else:
+                logger.warning(f"MongoDB 사용 불가. 결과는 메모리에만 저장됩니다: {scan_id}")
         
-        return jsonify(scan_status)
+        # 응답에 CORS 헤더 추가 (보장을 위해)
+        response = jsonify(scan_status)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
         
     except Exception as e:
         tb_str = traceback.format_exc()
@@ -218,9 +250,17 @@ def check_scan_status(scan_id):
         })
 
 # 빠른 스캔 API 단축 경로
-@scan_bp.route('/quick', methods=['POST'])
+@scan_bp.route('/quick', methods=['POST', 'OPTIONS'])
 def quick_scan_api():
-    """빠른 스캔 API"""
+    """빠른 스캔 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+    
     data = request.get_json() or {}
     if 'target' not in data:
         return jsonify({
@@ -234,9 +274,17 @@ def quick_scan_api():
     return start_scan()
 
 # 전체 스캔 API 단축 경로
-@scan_bp.route('/full', methods=['POST'])
+@scan_bp.route('/full', methods=['POST', 'OPTIONS'])
 def full_scan_api():
-    """전체 스캔 API"""
+    """전체 스캔 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+    
     data = request.get_json() or {}
     if 'target' not in data:
         return jsonify({
@@ -250,9 +298,17 @@ def full_scan_api():
     return start_scan()
 
 # 사용자 정의 스캔 API 단축 경로
-@scan_bp.route('/custom', methods=['POST'])
+@scan_bp.route('/custom', methods=['POST', 'OPTIONS'])
 def custom_scan_api():
-    """사용자 정의 스캔 API"""
+    """사용자 정의 스캔 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+    
     data = request.get_json() or {}
     if 'target' not in data:
         return jsonify({
@@ -273,9 +329,17 @@ def custom_scan_api():
     return start_scan()
 
 # 최근 스캔 결과 목록 조회 API
-@scan_bp.route('/history', methods=['GET'])
+@scan_bp.route('/history', methods=['GET', 'OPTIONS'])
 def scan_history():
-    """최근 스캔 결과 목록을 조회하는 API"""
+    """최근 스캔 결과 목록을 조회하는 API - 인증 제한 없음"""
+    # OPTIONS 요청 처리 (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
+        return response
+    
     try:
         if not hasattr(g, 'mongodb_available') or not g.mongodb_available:
             return jsonify({
@@ -304,17 +368,17 @@ def scan_history():
             'message': f'스캔 기록 조회에 실패했습니다: {str(e)}'
         }), 500
 
-# 테스트 스캔 API - nmap 없이도 테스트 가능한 API
+# 테스트 스캔 API - 인증 필요 없음
 @scan_bp.route('/test', methods=['POST', 'OPTIONS'])
 def test_scan_api():
-    """테스트 스캔 API - nmap 없이도 테스트 가능"""
+    """테스트 스캔 API - 인증 필요 없음"""
     # OPTIONS 요청 처리 (CORS preflight)
     if request.method == 'OPTIONS':
         response = current_app.make_default_options_response()
         # CORS 헤더 추가
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Skip-Auth, X-Admin-Access'
         return response
         
     try:
@@ -384,5 +448,5 @@ def test_scan_api():
         return jsonify({
             'error': 'Internal Server Error',
             'message': f'테스트 스캔 처리 중 오류: {str(e)}',
-            'details': tb_str if current_app.config.get('DEBUG', False) else None
+            'details': tb_str if DEBUG_MODE or current_app.config.get('DEBUG', False) else None
         }), 500 

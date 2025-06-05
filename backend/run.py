@@ -28,7 +28,7 @@ if __name__ == '__main__':
     
     # 실행
     app.run(
-        host=os.environ.get('FLASK_HOST', '127.0.0.1'),
+        host=os.environ.get('FLASK_HOST', '0.0.0.0'),
         port=int(os.environ.get('FLASK_PORT', 5000)),
         debug=debug_mode
     ) 
