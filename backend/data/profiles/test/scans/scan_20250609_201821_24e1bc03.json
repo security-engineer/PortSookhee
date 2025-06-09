@@ -1,0 +1,21 @@
+{
+  "error": "'Timeout from nmap process'",
+  "vpn_status": {
+    "connected": true,
+    "connection_info": {
+      "local_ip": "10.21.201.89",
+      "gateway": "",
+      "dns": [
+        "192.168.65.7"
+      ],
+      "routes": [
+        "10.10.0.0/16 via 10.21.0.1 metric 1000",
+        "10.21.0.0/16 proto kernel scope link src 10.21.201.89",
+        "10.101.0.0/16 via 10.21.0.1 metric 1000",
+        "10.103.0.0/16 via 10.21.0.1 metric 1000"
+      ]
+    },
+    "config": "TomGorani.ovpn"
+  },
+  "timestamp": "2025-06-09T20:18:21.531229"
+}
