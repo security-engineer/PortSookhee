@@ -32,7 +32,7 @@ const HomePage: React.FC = () => {
     <div className="max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
         <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
-          네트워크 취약점 분석 시스템
+          PortSookhee - 네트워크 취약점 분석 시스템
         </h1>
         <p className="text-gray-600 dark:text-gray-300 mb-6">
           이 시스템은 네트워크 환경의 보안 취약점을 탐지하고 분석하여 보안 위협을 사전에 방지하는 데 도움을 줍니다.

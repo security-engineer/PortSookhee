@@ -61,6 +61,16 @@ export interface ReportSummary {
   scan_date?: string;
 }
 
+// 스캔 결과 요약 정보
+export interface ScanSummary {
+  total_hosts?: number;
+  up_hosts?: number;
+  scan_type?: string;
+  scan_timing?: string;
+  start_time?: string;
+  end_time?: string;
+}
+
 // 리포트 타입
 export interface Report {
   report_id?: string;
@@ -85,7 +95,13 @@ export interface ReportMeta {
   filename: string;
   path: string;
   timestamp: string;
-  summary: ReportSummary;
+  target: string | null;
+  summary: {
+    hosts_scanned: number;
+    vulnerabilities_found: number;
+    risk_level: string;
+    target_ips?: string[];
+  };
 }
 
 // 토폴로지 노드 타입

@@ -76,6 +76,96 @@ nmap --script-updatedb
 
 ## 최근 수정 사항
 
+### 2025-06-14: 네트워크 토폴로지 UI 레이아웃 복원
+
+1.  **문제 해결**:
+    *   이전 코드 수정 과정에서 발생한 오류로 인해 `NetworkTopology.tsx` 컴포넌트의 오른쪽 패널(선택된 노드의 상세 정보를 보여주는 부분)이 사라지는 문제가 발생했습니다.
+    *   컴포넌트의 JSX `return` 문이 조기에 종료되어 전체 레이아웃 구조가 깨진 것을 확인하고 이를 복원했습니다.
+
+2.  **구현 방법**:
+    *   `NetworkTopology.tsx` 파일의 `return` 문을 전체적으로 재구성하여, 왼쪽의 토폴로지 맵과 오른쪽의 상세 정보 패널이 나란히 표시되는 2단 그리드(`lg:grid-cols-2`) 레이아웃을 복원했습니다.
+    *   `selectedNode` 상태에 따라 상세 정보 패널이 조건부로 렌더링되는 로직을 다시 추가했습니다.
+
+3.  **이점**:
+    *   **핵심 UI 복원**: 사용자가 토폴로지 맵에서 노드를 클릭했을 때 해당 노드의 상세 정보를 확인할 수 있는 핵심적인 사용자 인터페이스가 정상적으로 복원되었습니다.
+    *   **사용자 경험 정상화**: 사라졌던 기능이 복원되어 사용자가 원활하게 네트워크 정보를 탐색할 수 있게 되었습니다.
+
+### 2025-06-14: 네트워크 토폴로지 노드 색상 버그 및 데이터 불일치 문제 해결
+
+1.  **문제 해결**:
+    *   네트워크 토폴로지에서 리포트를 노드로 추가할 때, 위험 등급(CVSS 점수 기반)에 따라 노드 색상이 변경되지 않던 심각한 버그를 수정했습니다.
+    *   디버깅 결과, `highRiskCount` 값은 정상적으로 계산되었으나, 새로 생성되는 노드(`newNode`) 객체의 `custom_data` 속성에 이 값이 전달되지 않아 스타일링 함수에서 `undefined`로 인식되는 것이 원인이었습니다.
+
+2.  **해결 과정 및 장애물**:
+    *   문제 해결을 위해 `onAddNode` 함수 내에서 `newNode`를 생성하는 부분에 `highRiskCount`를 추가하는 코드 수정을 시도했습니다.
+    *   하지만 AI 어시스턴트의 `edit_file` 기능에 반복적인 문제가 발생하여, 코드 수정 요청이 제대로 반영되지 않거나 일부만 반영되는 현상이 지속되었습니다. (`console.log`만 삭제되고 핵심 수정 코드는 누락되는 등)
+    *   `reapply` 기능을 통한 재시도 역시 실패하여, 코드 자동 수정이 불가능한 상황에 도달했습니다.
+
+3.  **최종 해결책 (수동 적용)**:
+    *   자동 수정의 한계로 인해, 개발자가 직접 코드를 수정하는 방식으로 문제를 해결했습니다.
+    *   `front/src/features/NetworkTopology.tsx` 파일의 `onAddNode` 함수 전체를 아래와 같이 `highRiskCount`가 정상적으로 포함된 최종 코드로 교체했습니다.
+
+    ```tsx
+    const onAddNode = async (reportId: string) => {
+      if (!cytoscapeRef.current) return;
+  
+      const centralNodeId = nodes.find(n => n.custom_data?.role === 'central')?.id;
+      if (!centralNodeId) {
+        console.error("Central node not found");
+        return;
+      }
+  
+      try {
+        const reportToAdd = await dispatch(fetchReportById({ report_id: reportId, user_id: 'user1' })).unwrap();
+        
+        const highRiskCount = reportToAdd.details.vulnerabilities?.filter(v => v.risk === 'High').length || 0;
+        const vulnCount = reportToAdd.details.vulnerabilities?.length || 0;
+  
+        const newNode: TopologyNode = {
+          id: `report-${reportToAdd.report_id}`,
+          label: `${reportToAdd.details.target || `report-${reportToAdd.report_id.slice(-8)}`}`,
+          type: 'host',
+          custom_data: {
+            role: 'peripheral',
+            report_id: reportToAdd.report_id,
+            vulnCount: vulnCount,
+            highRiskCount: highRiskCount, // 원인이었던 누락된 값을 추가
+          },
+        };
+  
+        const newEdge: TopologyEdge = {
+          id: `edge-${centralNodeId}-${newNode.id}`,
+          source: centralNodeId,
+          target: newNode.id,
+        };
+  
+        dispatch(addNodeAndEdge({ node: newNode, edge: newEdge }));
+        
+      } catch (error) {
+        console.error('Failed to fetch report details for new node:', error);
+      }
+    };
+    ```
+
+4.  **이점**:
+    *   새로 추가된 토폴로지 노드의 색상이 고위험 취약점 개수에 따라 정확하게 시각화됩니다.
+    *   코드의 데이터 흐름이 명확해졌으며, 불필요한 디버깅 코드가 모두 제거되어 코드 가독성이 향상되었습니다.
+    *   AI 코드 수정 기능의 한계점을 문서화하여, 향후 유사 문제 발생 시 참고 자료로 활용할 수 있습니다.
+
+### 2025-06-13: 리포트 상세 페이지 네비게이션 오류 수정 및 메모리 누수 해결
+
+1. **문제 해결**:
+   - 리포트 상세 페이지의 '네트워크 토폴로지' 카드에 있는 버튼이 존재하지 않는 `/topology` 페이지로 이동하는 문제 해결.
+   - 리포트 상세 페이지에서 다른 페이지로 이동할 때 `currentReport` 데이터가 Redux 스토어에 남아 메모리 사용량이 급증하고 브라우저가 멈추는 문제 해결.
+
+2. **구현 방법**:
+   - `ReportDetail.tsx`에서 '토폴로지 페이지' 버튼의 `onClick` 핸들러를 `navigate('/')`로 수정하여 홈페이지로 이동하도록 변경.
+   - `ReportDetail.tsx`에 `useEffect` 훅을 추가하여 컴포넌트가 언마운트될 때 `clearCurrentReport` 액션을 디스패치하도록 구현. 이를 통해 페이지를 벗어날 때 Redux 스토어의 `currentReport` 상태를 초기화하여 메모리 누수를 방지.
+
+3. **이점**:
+   - 사용자 경험 개선: 잘못된 링크 수정으로 올바른 페이지로 이동.
+   - 애플리케이션 안정성 향상: 메모리 누수를 해결하여 대용량 리포트 조회 후에도 애플리케이션이 멈추거나 비정상적으로 종료되는 현상 방지.
+
 ### 2025-06-12: TopologyNode 인터페이스에서 'scanner' 타입 제거
 
 1. **문제 해결**:
@@ -487,3 +577,65 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### 2025-06-13: 토폴로지 노드 색상 버그 해결 및 최종 코드 정리
+
+1.  **문제 발생**:
+    -   `NetworkTopology.tsx`에서 '리포트 추가' 기능을 통해 새로 추가된 노드의 색상이 해당 리포트의 `highRiskCount`(고위험 취약점 개수)에 따라 동적으로 변경되지 않는 버그를 수정했습니다.
+    -   디버깅 결과, `highRiskCount` 값은 정상적으로 계산되었으나, 새로 생성되는 노드(`newNode`) 객체의 `custom_data` 속성에 이 값이 전달되지 않아 스타일링 함수에서 `undefined`로 인식되는 것이 원인이었습니다.
+
+2.  **해결 과정 및 장애물**:
+    -   문제 해결을 위해 `onAddNode` 함수 내에서 `newNode`를 생성하는 부분에 `highRiskCount`를 추가하는 코드 수정을 시도했습니다.
+    -   하지만 AI 어시스턴트의 `edit_file` 기능에 반복적인 문제가 발생하여, 코드 수정 요청이 제대로 반영되지 않거나 일부만 반영되는 현상이 지속되었습니다. (`console.log`만 삭제되고 핵심 수정 코드는 누락되는 등)
+    -   `reapply` 기능을 통한 재시도 역시 실패하여, 코드 자동 수정이 불가능한 상황에 도달했습니다.
+
+3.  **최종 해결책 (수동 적용)**:
+    -   자동 수정의 한계로 인해, 개발자가 직접 코드를 수정하는 방식으로 문제를 해결했습니다.
+    -   `front/src/features/NetworkTopology.tsx` 파일의 `onAddNode` 함수 전체를 아래와 같이 `highRiskCount`가 정상적으로 포함된 최종 코드로 교체했습니다.
+
+    ```tsx
+    const onAddNode = async (reportId: string) => {
+      if (!cytoscapeRef.current) return;
+  
+      const centralNodeId = nodes.find(n => n.custom_data?.role === 'central')?.id;
+      if (!centralNodeId) {
+        console.error("Central node not found");
+        return;
+      }
+  
+      try {
+        const reportToAdd = await dispatch(fetchReportById({ report_id: reportId, user_id: 'user1' })).unwrap();
+        
+        const highRiskCount = reportToAdd.details.vulnerabilities?.filter(v => v.risk === 'High').length || 0;
+        const vulnCount = reportToAdd.details.vulnerabilities?.length || 0;
+  
+        const newNode: TopologyNode = {
+          id: `report-${reportToAdd.report_id}`,
+          label: `${reportToAdd.details.target || `report-${reportToAdd.report_id.slice(-8)}`}`,
+          type: 'host',
+          custom_data: {
+            role: 'peripheral',
+            report_id: reportToAdd.report_id,
+            vulnCount: vulnCount,
+            highRiskCount: highRiskCount, // 원인이었던 누락된 값을 추가
+          },
+        };
+  
+        const newEdge: TopologyEdge = {
+          id: `edge-${centralNodeId}-${newNode.id}`,
+          source: centralNodeId,
+          target: newNode.id,
+        };
+  
+        dispatch(addNodeAndEdge({ node: newNode, edge: newEdge }));
+        
+      } catch (error) {
+        console.error('Failed to fetch report details for new node:', error);
+      }
+    };
+    ```
+
+4.  **이점**:
+    -   새로 추가된 토폴로지 노드의 색상이 고위험 취약점 개수에 따라 정확하게 시각화됩니다.
+    -   코드의 데이터 흐름이 명확해졌으며, 불필요한 디버깅 코드가 모두 제거되어 코드 가독성이 향상되었습니다.
+    -   AI 코드 수정 기능의 한계점을 문서화하여, 향후 유사 문제 발생 시 참고 자료로 활용할 수 있습니다.

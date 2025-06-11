@@ -51,12 +51,12 @@ export const generateReport = createAsyncThunk(
 );
 
 // 비동기 Thunk: 보고서 ID로 불러오기
-export const fetchReportById = createAsyncThunk(
+export const fetchReportById = createAsyncThunk<Report, { report_id: string; user_id: string }>(
   'report/fetchById',
-  async (reportId: string, { rejectWithValue }) => {
+  async ({ report_id }, { rejectWithValue }) => {
     try {
-      console.log(`reportSlice: fetchReportById 액션 디스패치 (ID: ${reportId})`);
-      const response = await apiService.getReportById(reportId);
+      console.log(`reportSlice: fetchReportById 액션 디스패치 (ID: ${report_id})`);
+      const response = await apiService.getReportById(report_id);
       
       if (response.status >= 400) {
         console.error(`reportSlice: API 오류 - ${response.data.error}`);
@@ -64,7 +64,7 @@ export const fetchReportById = createAsyncThunk(
       }
       
       console.log(`reportSlice: 보고서 데이터 성공적으로 받음`);
-      return response.data;
+      return response.data as Report;
     } catch (error: any) {
       console.error(`reportSlice: 예외 발생 - ${error.message}`);
       return rejectWithValue(error.response?.data?.error || '보고서를 불러오는 중 오류가 발생했습니다.');
@@ -107,9 +107,15 @@ const reportSlice = createSlice({
           state.reports.push({
             id: action.payload.report_id,
             timestamp: action.payload.timestamp,
-            summary: action.payload.summary,
+            target: action.payload.details.target,
             filename: `${action.payload.report_id}.json`,
-            path: ''
+            path: '',
+            summary: {
+              hosts_scanned: action.payload.summary.hosts_scanned,
+              vulnerabilities_found: action.payload.summary.vulnerabilities_found,
+              risk_level: action.payload.summary.risk_level,
+              target_ips: action.payload.summary.target_ips,
+            },
           });
         }
       })

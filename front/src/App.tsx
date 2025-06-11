@@ -39,7 +39,7 @@ const App: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               <div className="flex-shrink-0">
-                <span className="text-xl font-bold">취약점 분석 시스템</span>
+                <span className="text-xl font-bold">PortSookhee</span>
               </div>
               
               {/* 중앙 배치 네비게이션 */}

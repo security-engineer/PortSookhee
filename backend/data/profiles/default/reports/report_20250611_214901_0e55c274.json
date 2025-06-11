@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-06-11T11:49:01.521356",
+  "timestamp": "2025-06-11T21:49:01.283638",
   "details": {
-    "target": "10.10.149.235",
+    "target": "10.10.17.223",
     "hosts": [
       {
-        "host": "10.10.149.235",
+        "host": "10.10.17.223",
         "state": "up",
         "os": {
           "name": "Linux 3.10 - 3.13",
@@ -21,16 +21,16 @@
             "extrainfo": "(Ubuntu)",
             "scripts": [
               {
+                "id": "http-robots.txt",
+                "output": "1 disallowed entry \n/fuel/"
+              },
+              {
                 "id": "http-server-header",
                 "output": "Apache/2.4.18 (Ubuntu)"
               },
               {
                 "id": "http-title",
                 "output": "Welcome to FUEL CMS"
-              },
-              {
-                "id": "http-robots.txt",
-                "output": "1 disallowed entry \n/fuel/"
               },
               {
                 "id": "vulners",
@@ -669,18 +669,18 @@
       },
       "config": "TomGorani.ovpn"
     },
-    "timestamp": "2025-06-11T11:48:29.500865"
+    "timestamp": "2025-06-11T21:41:35.324951"
   },
   "summary": {
-    "scan_date": "2025-06-11T11:48:29.500865",
+    "scan_date": "2025-06-11T21:41:35.324951",
     "hosts_scanned": 1,
     "total_hosts": 1,
     "vulnerabilities_found": 87,
     "total_vulnerabilities": 87,
     "risk_level": "심각",
     "target_ips": [
-      "10.10.149.235"
+      "10.10.17.223"
     ],
-    "target": "10.10.149.235"
+    "target": "10.10.17.223"
   }
 }

@@ -287,7 +287,7 @@ const topologySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // loadUserTopology 액션 핸들러
+      // 사용자 토폴로지 로드
       .addCase(loadUserTopology.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -300,47 +300,17 @@ const topologySlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      
-      // addNodeToTopology 액션 핸들러
-      .addCase(addNodeToTopology.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // 노드 추가
       .addCase(addNodeToTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
-        state.loading = false;
         state.userTopology = action.payload;
       })
-      .addCase(addNodeToTopology.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      
-      // addScanToTopology 액션 핸들러
-      .addCase(addScanToTopology.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // 스캔 결과 추가
       .addCase(addScanToTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
-        state.loading = false;
         state.userTopology = action.payload;
       })
-      .addCase(addScanToTopology.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      
-      // removeNodeFromTopology 액션 핸들러
-      .addCase(removeNodeFromTopology.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // 노드 삭제
       .addCase(removeNodeFromTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
-        state.loading = false;
         state.userTopology = action.payload;
-      })
-      .addCase(removeNodeFromTopology.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       });
   },
 });

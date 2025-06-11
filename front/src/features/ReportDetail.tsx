@@ -31,6 +31,14 @@ const ReportDetail: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   
+  // 컴포넌트 언마운트 시 Redux 상태 정리
+  useEffect(() => {
+    // 페이지를 떠날 때 `currentReport`를 비워서 메모리 누수를 방지
+    return () => {
+      dispatch(clearCurrentReport());
+    };
+  }, [dispatch]);
+  
   // 리포트 데이터 가져오는 함수
   const fetchReportData = useCallback(async () => {
     if (!reportId) return;
@@ -475,7 +483,7 @@ const ReportDetail: React.FC = () => {
               <CardDescription>토폴로지 탭을 선택하여 네트워크 구조를 확인하세요</CardDescription>
             </CardHeader>
             <CardContent>
-              토폴로지에 이 리포트를 추가하려면 <Button variant="link" onClick={() => navigate('/topology')}>토폴로지 페이지</Button>로 이동하세요.
+              토폴로지에 이 리포트를 추가하려면 <Button variant="link" onClick={() => navigate(`/?add_report=${currentReport.report_id}`)}>토폴로지 페이지로 이동하여 추가</Button>하세요.
             </CardContent>
           </Card>
         </div>
