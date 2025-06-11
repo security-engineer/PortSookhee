@@ -1,7 +1,33 @@
-import React from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
+// NetworkTopology를 React.lazy로 지연 로딩
+const NetworkTopology = React.lazy(() => import('./NetworkTopology'));
 
 const HomePage: React.FC = () => {
+  const [showTopology, setShowTopology] = useState<boolean>(false);
+  const { currentReport, reports } = useSelector((state: RootState) => state.report);
+  const [lastReportId, setLastReportId] = useState<string | null>(null);
+
+  // 컴포넌트가 마운트된 후 일정 시간 후에 토폴로지 로드
+  useEffect(() => {
+    // 홈페이지 초기 렌더링 후 NetworkTopology 로딩을 지연시킴
+    const timer = setTimeout(() => {
+      setShowTopology(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // 새 리포트가 생성되면 토폴로지 표시 확인
+  useEffect(() => {
+    if (currentReport && currentReport.report_id && lastReportId !== currentReport.report_id) {
+      setLastReportId(currentReport.report_id || null);
+      setShowTopology(true);
+    }
+  }, [currentReport, lastReportId]);
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
@@ -55,6 +81,34 @@ const HomePage: React.FC = () => {
           </ol>
         </div>
       </div>
+      
+      {/* 통합된 네트워크 토폴로지 컴포넌트 - 지연 로딩 적용 */}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-2">네트워크 토폴로지</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
+          스캔 결과와 리포트를 기반으로 구성된 네트워크 구조를 시각화합니다. 
+          각 노드를 클릭하면 상세 정보를 확인할 수 있습니다.
+        </p>
+        <button 
+          onClick={() => setShowTopology(prev => !prev)}
+          className="mb-4 px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+        >
+          {showTopology ? '토폴로지 숨기기' : '토폴로지 표시하기'}
+        </button>
+      </div>
+
+      {showTopology && (
+        <Suspense fallback={
+          <div className="w-full h-[400px] flex items-center justify-center border rounded bg-gray-50">
+            <p className="text-gray-500">네트워크 토폴로지를 불러오는 중입니다...</p>
+          </div>
+        }>
+          <NetworkTopology 
+            showAddReportButton={true} 
+            simpleMode={false}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import scanReducer from './slices/scanSlice';
 import vulnerabilityReducer from './slices/vulnerabilitySlice';
 import reportReducer from './slices/reportSlice';
 import vpnReducer from './slices/vpnSlice';
+import topologyReducer from './slices/topologySlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     vulnerability: vulnerabilityReducer,
     report: reportReducer,
     vpn: vpnReducer,
+    topology: topologyReducer,
   },
 });
 

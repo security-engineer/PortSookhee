@@ -23,13 +23,51 @@ export const generateReport = createAsyncThunk(
   'report/generate',
   async (scanId: string, { rejectWithValue }) => {
     try {
+      // 리포트 생성 시작 로그
+      console.log('리포트 생성 시작 - scanId:', scanId);
+      
+      // 메모리 최적화: 응답에서 필요한 데이터만 처리
       const response = await apiService.generateReport(scanId);
+      
       if (response.status >= 400) {
+        console.error('리포트 생성 API 오류:', response.data.error);
         return rejectWithValue(response.data.error || '보고서 생성 중 오류가 발생했습니다.');
       }
+      
+      // 응답 데이터를 메모리에 저장하기 전에 필요한 정보만 추출하여 반환
+      const reportData = response.data;
+      
+      // 응답 크기 로깅
+      console.log('리포트 생성 완료 - 응답 크기:', 
+        JSON.stringify(reportData).length,
+        '바이트');
+      
+      return reportData;
+    } catch (error: any) {
+      console.error('리포트 생성 중 예외 발생:', error);
+      return rejectWithValue(error.response?.data?.error || '알 수 없는 오류가 발생했습니다.');
+    }
+  }
+);
+
+// 비동기 Thunk: 보고서 ID로 불러오기
+export const fetchReportById = createAsyncThunk(
+  'report/fetchById',
+  async (reportId: string, { rejectWithValue }) => {
+    try {
+      console.log(`reportSlice: fetchReportById 액션 디스패치 (ID: ${reportId})`);
+      const response = await apiService.getReportById(reportId);
+      
+      if (response.status >= 400) {
+        console.error(`reportSlice: API 오류 - ${response.data.error}`);
+        return rejectWithValue(response.data.error || '보고서를 불러오는 중 오류가 발생했습니다.');
+      }
+      
+      console.log(`reportSlice: 보고서 데이터 성공적으로 받음`);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || '알 수 없는 오류가 발생했습니다.');
+      console.error(`reportSlice: 예외 발생 - ${error.message}`);
+      return rejectWithValue(error.response?.data?.error || '보고서를 불러오는 중 오류가 발생했습니다.');
     }
   }
 );
@@ -78,6 +116,25 @@ const reportSlice = createSlice({
       .addCase(generateReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      
+      // 보고서 ID로 불러오기
+      .addCase(fetchReportById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchReportById.fulfilled, (state, action: PayloadAction<Report>) => {
+        state.loading = false;
+        state.currentReport = action.payload;
+        console.log('reportSlice: 상태 업데이트 완료, currentReport 설정됨', {
+          report_id: action.payload.report_id,
+          timestamp: action.payload.timestamp
+        });
+      })
+      .addCase(fetchReportById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        console.error('reportSlice: fetchReportById 실패, 에러 설정됨:', action.payload);
       });
   },
 });

@@ -21,7 +21,7 @@ RUN apt update && apt install build-essential
 WORKDIR /workspace
 
 # Python 패키지 설치
-# COPY ./backend ./backend
+COPY ./backend ./backend
 
 
 # 포트 노출

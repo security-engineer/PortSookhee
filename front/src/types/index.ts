@@ -88,6 +88,41 @@ export interface ReportMeta {
   summary: ReportSummary;
 }
 
+// 토폴로지 노드 타입
+export interface TopologyNode {
+  id: string;
+  label: string;
+  type: 'host' | 'custom';
+  state?: string;
+  report_id?: string;
+  scan_id?: string;
+  timestamp?: string;
+  target?: string;
+  risk_level?: string;
+  vulnerabilities_count?: number;
+  high_risk_count?: number;
+  ip_address?: string;
+  description?: string;
+  custom_data?: Record<string, any>;
+}
+
+// 토폴로지 엣지 타입
+export interface TopologyEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+}
+
+// 사용자별 토폴로지 저장 타입
+export interface UserTopology {
+  user_id: string;
+  nodes: TopologyNode[];
+  edges: TopologyEdge[];
+  created_at: string;
+  updated_at: string;
+}
+
 // 앱 상태 타입
 export interface AppState {
   scan: {
@@ -107,5 +142,11 @@ export interface AppState {
     error: string | null;
     currentReport: Report | null;
     reports: ReportMeta[];
+  };
+  topology: {
+    loading: boolean;
+    error: string | null;
+    userTopology: UserTopology | null;
+    selectedNode: TopologyNode | null;
   };
 }

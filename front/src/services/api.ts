@@ -82,16 +82,27 @@ const apiService = {
       // 간소화: 스캔 ID만 전달 (백엔드가 스캔 ID로부터 모든 정보를 조회하도록)
       const payload: any = { scan_id: scanId };
       
+      // vulnerabilityResults가 전달된 경우 메모리 최적화를 위해 필요한 최소 정보만 추출
+      if (vulnerabilityResults) {
+        console.warn('취약점 분석 결과를 직접 전달하는 방식은 권장되지 않습니다. 메모리 사용량 최적화를 위해 scanId만 사용합니다.');
+        // 백엔드에 취약점 결과를 전달할 필요가 없음 - 백엔드가 scanId로 검색
+      }
+      
       // 로깅
       console.log('리포트 생성 요청 payload:', payload);
       
-      const response: AxiosResponse = await apiClient.post('/report', payload);
+      // 응답 대기 시간이 길 수 있으므로 타임아웃 설정
+      const response: AxiosResponse = await apiClient.post('/report', payload, {
+        timeout: 30000, // 30초 타임아웃
+      });
+      
       return {
         data: response.data,
         status: response.status,
         statusText: response.statusText,
       };
     } catch (error: any) {
+      console.error('리포트 생성 API 오류:', error);
       return {
         data: error.response?.data || { error: '서버 연결 오류' },
         status: error.response?.status || 500,
