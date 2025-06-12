@@ -21,10 +21,11 @@ const initialState: TopologyState = {
 // 실제 API 통신은 추후 구현
 export const loadUserTopology = createAsyncThunk(
   'topology/loadUserTopology',
-  async (userId: string, { rejectWithValue }) => {
+  async (profileId: string, { rejectWithValue }) => {
     try {
+      if (!profileId) return rejectWithValue('프로필이 선택되지 않았습니다.');
       // 임시 구현: 로컬 스토리지에서 토폴로지 데이터 불러오기
-      const storedTopology = localStorage.getItem(`topology_${userId}`);
+      const storedTopology = localStorage.getItem(`topology_${profileId}`);
       
       if (storedTopology) {
         const parsedTopology = JSON.parse(storedTopology) as UserTopology;
@@ -64,13 +65,13 @@ export const loadUserTopology = createAsyncThunk(
         }
         
         // 변경된 토폴로지 저장
-        localStorage.setItem(`topology_${userId}`, JSON.stringify(parsedTopology));
+        localStorage.setItem(`topology_${profileId}`, JSON.stringify(parsedTopology));
         return parsedTopology;
       }
       
       // 데이터가 없으면 기본 토폴로지 생성 - 중앙 호스트 노드만 포함
       const defaultTopology: UserTopology = {
-        user_id: userId,
+        user_id: profileId,
         nodes: [{
           id: 'main-host',
           label: 'Host',
@@ -90,7 +91,7 @@ export const loadUserTopology = createAsyncThunk(
       };
       
       // 기본 토폴로지 저장
-      localStorage.setItem(`topology_${userId}`, JSON.stringify(defaultTopology));
+      localStorage.setItem(`topology_${profileId}`, JSON.stringify(defaultTopology));
       return defaultTopology;
     } catch (error: any) {
       return rejectWithValue(error.message || '토폴로지 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -101,13 +102,13 @@ export const loadUserTopology = createAsyncThunk(
 // 토폴로지에 노드 추가 비동기 액션
 export const addNodeToTopology = createAsyncThunk(
   'topology/addNodeToTopology',
-  async ({ userId, node, edges }: { userId: string, node: TopologyNode, edges?: TopologyEdge[] }, { getState, rejectWithValue }) => {
+  async ({ profileId, node, edges }: { profileId: string, node: TopologyNode, edges?: TopologyEdge[] }, { getState, rejectWithValue }) => {
     try {
       const state = getState() as { topology: TopologyState };
       const currentTopology = state.topology.userTopology;
       
-      if (!currentTopology) {
-        return rejectWithValue('토폴로지 데이터가 없습니다. 먼저 토폴로지를 로드해주세요.');
+      if (!currentTopology || currentTopology.user_id !== profileId) {
+        return rejectWithValue('현재 프로필의 토폴로지 데이터가 로드되지 않았습니다.');
       }
       
       // 이미 존재하는 노드인지 확인
@@ -141,7 +142,7 @@ export const addNodeToTopology = createAsyncThunk(
       };
       
       // 로컬 스토리지에 저장
-      localStorage.setItem(`topology_${userId}`, JSON.stringify(updatedTopology));
+      localStorage.setItem(`topology_${profileId}`, JSON.stringify(updatedTopology));
       
       return updatedTopology;
     } catch (error: any) {
@@ -153,13 +154,13 @@ export const addNodeToTopology = createAsyncThunk(
 // 스캔 결과를 토폴로지에 추가하는 비동기 액션
 export const addScanToTopology = createAsyncThunk(
   'topology/addScanToTopology',
-  async ({ userId, scanResult }: { userId: string, scanResult: any }, { getState, rejectWithValue }) => {
+  async ({ profileId, scanResult }: { profileId: string, scanResult: any }, { getState, rejectWithValue }) => {
     try {
       const state = getState() as { topology: TopologyState };
       const currentTopology = state.topology.userTopology;
       
-      if (!currentTopology) {
-        return rejectWithValue('토폴로지 데이터가 없습니다. 먼저 토폴로지를 로드해주세요.');
+      if (!currentTopology || currentTopology.user_id !== profileId) {
+        return rejectWithValue('현재 프로필의 토폴로지 데이터가 로드되지 않았습니다.');
       }
       
       // 새 노드들과 엣지들을 저장할 배열
@@ -214,7 +215,7 @@ export const addScanToTopology = createAsyncThunk(
       };
       
       // 로컬 스토리지에 저장
-      localStorage.setItem(`topology_${userId}`, JSON.stringify(updatedTopology));
+      localStorage.setItem(`topology_${profileId}`, JSON.stringify(updatedTopology));
       
       return updatedTopology;
     } catch (error: any) {
@@ -226,13 +227,13 @@ export const addScanToTopology = createAsyncThunk(
 // 토폴로지에서 노드 삭제 비동기 액션
 export const removeNodeFromTopology = createAsyncThunk(
   'topology/removeNodeFromTopology',
-  async ({ userId, nodeId }: { userId: string, nodeId: string }, { getState, rejectWithValue }) => {
+  async ({ profileId, nodeId }: { profileId: string, nodeId: string }, { getState, rejectWithValue }) => {
     try {
       const state = getState() as { topology: TopologyState };
       const currentTopology = state.topology.userTopology;
       
-      if (!currentTopology) {
-        return rejectWithValue('토폴로지 데이터가 없습니다. 먼저 토폴로지를 로드해주세요.');
+      if (!currentTopology || currentTopology.user_id !== profileId) {
+        return rejectWithValue('현재 프로필의 토폴로지 데이터가 로드되지 않았습니다.');
       }
       
       // 중앙 호스트 노드는 삭제 불가
@@ -257,7 +258,46 @@ export const removeNodeFromTopology = createAsyncThunk(
       };
       
       // 로컬 스토리지에 저장
-      localStorage.setItem(`topology_${userId}`, JSON.stringify(updatedTopology));
+      localStorage.setItem(`topology_${profileId}`, JSON.stringify(updatedTopology));
+      
+      return updatedTopology;
+    } catch (error: any) {
+      return rejectWithValue(error.message || '토폴로지에서 노드를 삭제하는 중 오류가 발생했습니다.');
+    }
+  }
+);
+
+// 토폴로지에서 여러 노드 삭제 비동기 액션
+export const removeNodesFromTopology = createAsyncThunk(
+  'topology/removeNodesFromTopology',
+  async ({ profileId, nodeIds }: { profileId: string, nodeIds: string[] }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { topology: TopologyState };
+      const currentTopology = state.topology.userTopology;
+      
+      if (!currentTopology || currentTopology.user_id !== profileId) {
+        return rejectWithValue('현재 프로필의 토폴로지 데이터가 로드되지 않았습니다.');
+      }
+
+      const idsToRemove = new Set(nodeIds.filter(id => id !== 'main-host'));
+
+      if (idsToRemove.size === 0) {
+        return currentTopology;
+      }
+
+      const updatedNodes = currentTopology.nodes.filter(node => !idsToRemove.has(node.id));
+      const updatedEdges = currentTopology.edges.filter(
+        edge => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target)
+      );
+      
+      const updatedTopology: UserTopology = {
+        ...currentTopology,
+        nodes: updatedNodes,
+        edges: updatedEdges,
+        updated_at: new Date().toISOString(),
+      };
+      
+      localStorage.setItem(`topology_${profileId}`, JSON.stringify(updatedTopology));
       
       return updatedTopology;
     } catch (error: any) {
@@ -271,52 +311,84 @@ const topologySlice = createSlice({
   name: 'topology',
   initialState,
   reducers: {
-    // 선택된 노드 변경
     setSelectedNode: (state, action: PayloadAction<TopologyNode | null>) => {
       state.selectedNode = action.payload;
     },
-    // 오류 상태 초기화
-    resetTopologyError: (state) => {
-      state.error = null;
-    },
-    // 토폴로지 데이터 초기화
-    clearTopology: (state) => {
-      state.userTopology = null;
+    clearSelectedNode: (state) => {
       state.selectedNode = null;
-    },
+    }
   },
   extraReducers: (builder) => {
     builder
-      // 사용자 토폴로지 로드
       .addCase(loadUserTopology.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(loadUserTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
-        state.loading = false;
         state.userTopology = action.payload;
+        state.loading = false;
       })
       .addCase(loadUserTopology.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // 노드 추가
+      .addCase(addNodeToTopology.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(addNodeToTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
         state.userTopology = action.payload;
+        state.loading = false;
       })
-      // 스캔 결과 추가
-      .addCase(addScanToTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
-        state.userTopology = action.payload;
+      .addCase(addNodeToTopology.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       })
-      // 노드 삭제
+      .addCase(removeNodeFromTopology.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(removeNodeFromTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
         state.userTopology = action.payload;
+        state.loading = false;
+        if (state.selectedNode && !action.payload.nodes.some(n => n.id === state.selectedNode!.id)) {
+          state.selectedNode = null;
+        }
+      })
+      .addCase(removeNodeFromTopology.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(removeNodesFromTopology.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeNodesFromTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
+        state.userTopology = action.payload;
+        state.loading = false;
+        if (state.selectedNode && !action.payload.nodes.some(n => n.id === state.selectedNode!.id)) {
+          state.selectedNode = null;
+        }
+      })
+      .addCase(removeNodesFromTopology.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(addScanToTopology.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addScanToTopology.fulfilled, (state, action: PayloadAction<UserTopology>) => {
+        state.userTopology = action.payload;
+        state.loading = false;
+      })
+      .addCase(addScanToTopology.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-// 액션 내보내기
-export const { setSelectedNode, resetTopologyError, clearTopology } = topologySlice.actions;
+export const { setSelectedNode, clearSelectedNode } = topologySlice.actions;
 
-// 리듀서 내보내기
 export default topologySlice.reducer; 

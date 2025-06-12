@@ -264,6 +264,24 @@ const apiService = {
     }
   },
 
+  // 프로필 삭제
+  deleteProfile: async (profileName: string): Promise<ApiResponse> => {
+    try {
+      const response: AxiosResponse = await apiClient.delete(`/profiles/${profileName}`);
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+      };
+    } catch (error: any) {
+      return {
+        data: error.response?.data || { error: '서버 연결 오류' },
+        status: error.response?.status || 500,
+        statusText: error.response?.statusText || 'Server Error',
+      };
+    }
+  },
+
   // 현재 프로필 설정
   setCurrentProfile: async (profileName: string): Promise<ApiResponse> => {
     try {
@@ -279,24 +297,6 @@ const apiService = {
       };
     } catch (error: any) {
       console.error('프로필 변경 오류:', error.response?.data);
-      return {
-        data: error.response?.data || { error: '서버 연결 오류' },
-        status: error.response?.status || 500,
-        statusText: error.response?.statusText || 'Server Error',
-      };
-    }
-  },
-
-  // 프로필 삭제
-  deleteProfile: async (profileName: string): Promise<ApiResponse> => {
-    try {
-      const response: AxiosResponse = await apiClient.delete(`/profiles/${profileName}`);
-      return {
-        data: response.data,
-        status: response.status,
-        statusText: response.statusText,
-      };
-    } catch (error: any) {
       return {
         data: error.response?.data || { error: '서버 연결 오류' },
         status: error.response?.status || 500,

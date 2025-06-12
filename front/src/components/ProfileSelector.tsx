@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, PlusCircle, Check, ChevronDown } from 'lucide-react';
+import { UserCircle, PlusCircle, Check, ChevronDown, Trash2 } from 'lucide-react';
 import apiService from '../services/api';
 
 const ProfileSelector: React.FC = () => {
@@ -70,6 +70,30 @@ const ProfileSelector: React.FC = () => {
     }
   };
 
+  // 프로필 삭제
+  const handleDeleteProfile = async (profileName: string) => {
+    if (profileName === 'default' || profileName === currentProfile) return;
+
+    if (window.confirm(`'${profileName}' 프로필을 정말로 삭제하시겠습니까?`)) {
+      setIsLoading(true);
+      try {
+        const response = await apiService.deleteProfile(profileName);
+        if (response.status === 200) {
+          console.log('프로필 삭제 성공');
+          loadProfiles(); // 목록 새로고침
+        } else {
+          setError(response.data.error || '프로필 삭제에 실패했습니다.');
+          setTimeout(() => setError(null), 3000);
+        }
+      } catch (error) {
+        setError('프로필 삭제 중 오류가 발생했습니다.');
+        setTimeout(() => setError(null), 3000);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   // 새 프로필 생성
   const handleCreateProfile = async () => {
     if (!newProfileName.trim()) return;
@@ -136,17 +160,28 @@ const ProfileSelector: React.FC = () => {
             {/* 프로필 목록 */}
             <div className="max-h-48 overflow-y-auto">
               {profiles.map((profile) => (
-                <button
-                  key={profile}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2"
-                  onClick={() => handleSelectProfile(profile)}
-                  disabled={isLoading}
-                >
-                  {profile === currentProfile && <Check className="h-4 w-4 text-green-500" />}
-                  <span className={profile === currentProfile ? "font-medium" : ""}>
-                    {profile}
-                  </span>
-                </button>
+                <div key={profile} className="flex items-center justify-between hover:bg-gray-100 group">
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm flex items-center space-x-2"
+                    onClick={() => handleSelectProfile(profile)}
+                    disabled={isLoading}
+                  >
+                    {profile === currentProfile && <Check className="h-4 w-4 text-green-500" />}
+                    <span className={profile === currentProfile ? "font-medium" : ""}>
+                      {profile}
+                    </span>
+                  </button>
+                  {profile !== 'default' && profile !== currentProfile && (
+                    <button
+                      onClick={() => handleDeleteProfile(profile)}
+                      className="p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`${profile} 삭제`}
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
 

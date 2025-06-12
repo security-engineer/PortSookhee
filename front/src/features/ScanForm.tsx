@@ -7,7 +7,13 @@ import { setCurrentScan } from '../store/slices/scanSlice';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Select } from '../components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import axios from 'axios';
@@ -132,17 +138,21 @@ const ScanForm: React.FC = () => {
             
             <div className="grid gap-2">
               <label htmlFor="scanType" className="text-sm font-medium">스캔 유형</label>
-              <Select 
-                id="scanType"
-                value={scanType} 
-                onChange={(e) => setScanType(e.target.value)}
+              <Select
+                value={scanType}
+                onValueChange={setScanType}
                 disabled={isLoading}
               >
-                {scanTypeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="스캔 유형 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {scanTypeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">
                 {scanType === '-sC -sV' && '스크립트와 버전 감지를 결합한 빠른 스캔'}

@@ -16,10 +16,10 @@ import {
   DialogFooter
 } from '../components/ui/dialog';
 import { HostInfo, Vulnerability, TopologyNode, Report, ReportMeta, TopologyEdge } from '../types';
-import { loadUserTopology, addNodeToTopology, setSelectedNode, addScanToTopology } from '../store/slices/topologySlice';
+import { loadUserTopology, addNodeToTopology, setSelectedNode, addScanToTopology, removeNodesFromTopology } from '../store/slices/topologySlice';
 import { setCurrentReport } from '../store/slices/reportSlice';
 import { useAppDispatch } from '../store/hooks';
-import { PlusCircle, RefreshCw } from 'lucide-react';
+import { PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -39,7 +39,22 @@ const CytoscapeComponent: React.FC<CytoscapeComponentProps> = ({ elements, style
       return;
     }
     try {
-      cytoscapeInstance.layout({ name: 'cose', animate: false, fit: true, padding: 50 }).run();
+      cytoscapeInstance.layout({ 
+        name: 'cose', 
+        animate: true,
+        animationDuration: 1200,
+        animationEasing: 'ease-in-out',
+        fit: true, 
+        padding: 80,
+        nodeRepulsion: () => 450000,
+        idealEdgeLength: () => 150,
+        gravity: 70,
+        randomize: false,
+        refresh: 20,
+        componentSpacing: 150,
+        initialTemp: 35,
+        coolingFactor: 0.95
+      }).run();
     } catch (error) {
       console.error("Error applying layout:", error);
     }
@@ -48,22 +63,122 @@ const CytoscapeComponent: React.FC<CytoscapeComponentProps> = ({ elements, style
   const applyCytoscapeStyles = useCallback((cytoscapeInstance: cytoscape.Core) => {
     if (!cytoscapeInstance) return;
     try {
+      const laptopIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAxNlY3YTIgMiAwIDAgMC0yLTJINmEyIDIgMCAwIDAtMiAydjltMTYgMEg0bTE2IDAgbDEuMjggMi41NUExIDEgMCAwIDEgMjAuMjggMjBIMy43MmExIDEgMCAwIDEtLjk4LTEuNDVMNCAxNnoiPjwvcGF0aD48L3N2Zz4=';
+      const globeIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiPjwvY2lyY2xlPjxsaW5lIHgxPSIyIiB5MT0iMTIiIHgyPSIyMiIgeTI9IjEyIj48L2xpbmU+PHBhdGggZD0iTTEyIDJhMTUuMyAxNS4zIDAgMCAxIDQgMTAgMTUuMyAxNS4zIDAgMCAxLTQgMTAgMTUuMyAxNS4zIDAgMCAxLTQgLTEwIDE1LjMgMTUuMyAwIDAgMSA0LTEweiI+PC9wYXRoPjwvc3ZnPg==';
+
       cytoscapeInstance.style()
         .resetToDefault()
-        .selector('node[?custom_data][custom_data.role = "central"]')
-        .style({ 'background-color': '#3b82f6', 'shape': 'hexagon' })
-        .selector('node[type="host"]')
-        .style({
-          'background-color': (ele: NodeSingular) => {
-            if (ele.data('custom_data')?.role === 'central') return '#3b82f6';
-            const highRiskCount = ele.data('custom_data')?.highRiskCount || 0;
-            if (highRiskCount > 3) return '#ef4444';
-            if (highRiskCount > 0) return '#f97316';
-            return '#22c55e';
-          },
-        })
+        .selector('node')
+          .style({
+            'shape': 'ellipse',
+            'width': 80, 'height': 80,
+            'background-image': laptopIcon,
+            'background-fit': 'cover',
+            'background-position-x': '50%',
+            'background-position-y': '45%',
+            'background-width': '50%',
+            'border-width': 1,
+            'border-color': '#93c5fd',
+            'label': 'data(label)',
+            'font-size': 13, 'color': '#334155', 'font-weight': 'bold',
+            'text-valign': 'bottom', 'text-halign': 'center', 'text-margin-y': 8,
+            'text-wrap': 'wrap', 'text-max-width': '120px',
+            'transition-property': 'background-color, shadow-blur, shadow-color, border-color',
+            'transition-duration': 300,
+            'shadow-blur': 10, 'shadow-opacity': 0.35, 'shadow-color': '#94a3b8',
+            'text-outline-color': '#ffffff', 'text-outline-width': 1,
+            'overlay-padding': 6,
+            'z-index': 10
+          } as any)
+        .selector('.central-node')
+          .style({ 
+            'shape': 'ellipse',
+            'background-color': '#3b82f6',
+            'background-image': globeIcon,
+            'border-color': '#0c4a6e',
+            'border-width': 1,
+            'width': 90, 'height': 90,
+            'font-size': 15,
+            'text-outline-color': '#ffffff', 'text-outline-width': 2,
+            'color': '#1e3a8a',
+            'shadow-blur': 15, 'shadow-opacity': 0.5, 'shadow-color': '#60a5fa',
+            'overlay-padding': 8
+          } as any)
+        .selector('.high-risk')
+          .style({ 
+            'background-color': '#fee2e2',
+            'border-color': '#dc2626',
+            'border-width': 2,
+            'shadow-blur': 12, 'shadow-opacity': 0.6, 'shadow-color': '#ef4444'
+          } as any)
+        .selector('.medium-risk')
+          .style({ 
+            'background-color': '#fff7ed',
+            'border-color': '#f59e0b',
+            'border-width': 2,
+            'shadow-blur': 12, 'shadow-opacity': 0.5, 'shadow-color': '#f59e0b'
+          } as any)
+        .selector('.low-risk')
+          .style({ 
+            'background-color': '#f0fdf4',
+            'border-color': '#16a34a',
+            'border-width': 2,
+            'shadow-blur': 12, 'shadow-opacity': 0.5, 'shadow-color': '#22c55e'
+          } as any)
         .selector('edge')
-        .style({ 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8' })
+          .style({ 
+            'width': 2, 
+            'line-color': '#cbd5e1', 
+            'target-arrow-color': '#cbd5e1',
+            'target-arrow-shape': 'triangle', 
+            'curve-style': 'unbundled-bezier',
+            'control-point-distances': [40],
+            'control-point-weights': [0.5],
+            'edge-distances': 'node-position',
+            'transition-property': 'line-color, target-arrow-color, width', 
+            'transition-duration': 300,
+            'z-index': 1
+          } as any)
+        .selector(':selected')
+          .style({ 
+            'border-width': 3,
+            'border-color': '#3b82f6',
+            'shadow-blur': 25,
+            'shadow-opacity': 0.8,
+            'shadow-color': (ele: NodeSingular) => {
+                if (ele.hasClass('high-risk')) return '#ef4444';
+                if (ele.hasClass('medium-risk')) return '#f59e0b';
+                if (ele.hasClass('low-risk')) return '#22c55e';
+                if (ele.hasClass('central-node')) return '#60a5fa';
+                return '#3b82f6';
+            },
+            'z-index': 20
+          } as any)
+        .selector('node:hover')
+          .style({
+             'shadow-blur': 20,
+             'shadow-opacity': 0.7,
+             'shadow-color': '#60a5fa',
+             'background-color': (ele: NodeSingular) => {
+                if (ele.hasClass('high-risk')) return '#fecaca';
+                if (ele.hasClass('medium-risk')) return '#ffedd5';
+                if (ele.hasClass('low-risk')) return '#dcfce7';
+                if (ele.hasClass('central-node')) return '#60a5fa';
+                return '#bfdbfe';
+             },
+             'overlay-opacity': 0.1,
+             'overlay-color': '#60a5fa',
+             'transition-property': 'shadow-blur, shadow-opacity, background-color',
+             'transition-duration': 200,
+             'z-index': 30
+          } as any)
+        .selector('edge:hover')
+          .style({ 
+            'line-color': '#60a5fa', 
+            'target-arrow-color': '#60a5fa', 
+            'width': 3,
+            'z-index': 15
+          } as any)
         .update();
     } catch (error) {
       console.error("Error applying styles:", error);
@@ -73,32 +188,31 @@ const CytoscapeComponent: React.FC<CytoscapeComponentProps> = ({ elements, style
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let cyInstance: cytoscape.Core;
+
     if (!cyRef.current) {
-      const cyInstance = cytoscape({
+      cyInstance = cytoscape({
         container: containerRef.current,
-        elements: elements,
-        style: [
-            { selector: 'node', style: { 'label': 'data(label)', 'font-size': 12, 'text-valign': 'bottom', 'text-halign': 'center', 'text-margin-y': 6, 'text-wrap': 'wrap', 'text-max-width': '120px', 'width': 50, 'height': 50 } },
-            { selector: 'edge', style: { 'width': 2, 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
-            { selector: ':selected', style: { 'border-width': 3, 'border-color': '#2563eb' } },
-        ],
-        minZoom: 0.3,
+        minZoom: 0.5,
         maxZoom: 3,
-        wheelSensitivity: 0.15,
+        wheelSensitivity: 0.3,
       });
       cyRef.current = cyInstance;
-      cyCallback(cyInstance);
+    } else {
+      cyInstance = cyRef.current;
     }
     
-    applyCytoscapeStyles(cyRef.current);
-    cyRef.current.json({ elements });
-    applyLayout(cyRef.current);
+    cyInstance.json({ elements });
+    applyCytoscapeStyles(cyInstance);
+    applyLayout(cyInstance);
+    cyCallback(cyInstance); // 항상 최신 인스턴스로 콜백 호출
 
     return () => {
-      if (cyRef.current && !cyRef.current.destroyed()) {
-        cyRef.current.destroy();
+      // 컴포넌트가 언마운트될 때만 destroy
+      if (cyInstance && !cyInstance.destroyed() && cyInstance.container()?.isConnected === false) {
+          cyInstance.destroy();
+          cyRef.current = null;
       }
-      cyRef.current = null;
     };
   }, [elements, cyCallback, applyLayout, applyCytoscapeStyles]);
 
@@ -193,6 +307,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   const { currentVulnerability } = useSelector((state: RootState) => state.vulnerability);
   const { currentReport, reports } = useSelector((state: RootState) => state.report);
   const { userTopology, selectedNode } = useSelector((state: RootState) => state.topology);
+  const { activeProfileId } = useSelector((state: RootState) => state.profile);
   
   const [elements, setElements] = useState<{ nodes: any[], edges: any[] }>({ nodes: [], edges: [] });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -225,7 +340,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
         nodes: [{
           data: {
             id: 'main-host',
-            label: '호스트',
+            label: 'Host',
             type: 'host',
             state: 'up',
             custom_data: { role: 'central', os: 'localhost', ports: 0, vulnCount: 0, highRiskCount: 0 }
@@ -237,59 +352,59 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
       return;
     }
     
-    const userId = 'user1';
-    dispatch(loadUserTopology(userId));
+    if (activeProfileId) {
+      dispatch(loadUserTopology(activeProfileId));
+    }
     
     if (reports && reports.length > 0) {
       setReportsForModal(reports);
     }
-  }, [dispatch, reports, simpleMode]);
+  }, [dispatch, reports, simpleMode, activeProfileId]);
   
   useEffect(() => {
-    if (!simpleMode && currentScan && userTopology) {
-      const userId = 'user1';
-      dispatch(addScanToTopology({ userId, scanResult: currentScan }));
+    if (!simpleMode && currentScan && userTopology && activeProfileId) {
+      dispatch(addScanToTopology({ profileId: activeProfileId, scanResult: currentScan }));
     }
-  }, [currentScan, userTopology, dispatch, simpleMode]);
+  }, [currentScan, userTopology, dispatch, simpleMode, activeProfileId]);
 
   const generateTopologyElements = useCallback(() => {
     if (!userTopology) return { nodes: [], edges: [] };
     
-    if (!userTopology.nodes || userTopology.nodes.length === 0) {
-      return { 
-        nodes: [{
-          data: {
-            id: 'main-host', label: '호스트', type: 'host', state: 'up',
-            custom_data: { role: 'central', os: 'localhost', ports: 0, vulnCount: 0, highRiskCount: 0 }
-          }
-        }], 
-        edges: [] 
-      };
-    }
-    
-    const nodes = userTopology.nodes.map(node => {
-      if (!node.custom_data) node.custom_data = { role: node.id === 'main-host' ? 'central' : 'node' };
-      else if (!node.custom_data.role) node.custom_data.role = node.id === 'main-host' ? 'central' : 'node';
-      return { data: { ...node, label: node.label || node.id } };
+    const baseNodes = (userTopology.nodes || []).map(node => {
+      let riskClass = '';
+      if (node.id !== 'main-host') {
+          const highRiskCount = node.high_risk_count ?? 0;
+          if (highRiskCount > 3) riskClass = 'high-risk';
+          else if (highRiskCount > 0) riskClass = 'medium-risk';
+          else riskClass = 'low-risk';
+      } else {
+          riskClass = 'central-node';
+      }
+      
+      const nodeData = { ...node, label: node.label || node.id };
+      if (node.id === 'main-host') {
+          nodeData.label = 'Host';
+      }
+
+      return { data: nodeData, classes: riskClass };
     });
     
-    if (!nodes.some(node => node.data.id === 'main-host')) {
-      nodes.unshift({
+    if (!baseNodes.some(node => node.data.id === 'main-host')) {
+      baseNodes.unshift({
         data: {
-          id: 'main-host', label: '호스트', type: 'host', state: 'up',
+          id: 'main-host', label: '메인 네트워크', type: 'host', state: 'up',
           custom_data: { role: 'central', os: 'localhost', ports: 0, vulnCount: 0, highRiskCount: 0 }
-        }
+        },
+        classes: 'central-node'
       });
     }
     
-    if (!userTopology.edges || userTopology.edges.length === 0) return { nodes, edges: [] };
-    
-    const nodeIds = new Set(nodes.map(node => node.data.id));
-    const edges = userTopology.edges
+    const nodeIds = new Set(baseNodes.map(node => node.data.id));
+    const edges = (userTopology.edges || [])
       .filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
       .map(edge => ({ data: { ...edge } }));
     
-    return { nodes, edges };
+    return { nodes: baseNodes, edges };
   }, [userTopology]);
 
   const handleNodeClick = useCallback((nodeId: string) => {
@@ -300,30 +415,45 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   }, [userTopology, dispatch]);
   
   const resetTopology = () => {
-    if (window.confirm('토폴로지 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('topology_')) keysToRemove.push(key);
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      dispatch(loadUserTopology('user1'));
+    if (window.confirm('현재 프로필의 토폴로지 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        if (!activeProfileId) return;
+        localStorage.removeItem(`topology_${activeProfileId}`);
+        dispatch(loadUserTopology(activeProfileId));
+    }
+  };
+  
+  const handleDeleteSelected = () => {
+    if (!cyRef.current || !activeProfileId) return;
+    const selectedNodes = cyRef.current.nodes(':selected');
+    if (selectedNodes.length === 0) {
+      alert('삭제할 노드를 선택해주세요.');
+      return;
+    }
+
+    const nodeIdsToDelete = selectedNodes.map(node => node.id()).filter(id => id !== 'main-host');
+    
+    if (nodeIdsToDelete.length === 0) {
+        alert('Host 노드는 삭제할 수 없습니다.');
+        return;
+    }
+
+    if (window.confirm(`${nodeIdsToDelete.length}개의 노드를 삭제하시겠습니까?`)) {
+      dispatch(removeNodesFromTopology({ profileId: activeProfileId, nodeIds: nodeIdsToDelete }));
     }
   };
   
   const handleAddReportNode = useCallback(() => {
-    if (!currentReport) return;
+    if (!currentReport || !activeProfileId) return;
     try {
       const result = createNodeAndEdgeFromReport(currentReport);
       if (result) {
         const { node, edge } = result;
-        const userId = 'user1';
-        dispatch(addNodeToTopology({ userId, node, edges: [edge] }));
+        dispatch(addNodeToTopology({ profileId: activeProfileId, node, edges: [edge] }));
       }
     } catch (error) {
       console.error('리포트 노드 추가 오류:', error);
     }
-  }, [currentReport, dispatch]);
+  }, [currentReport, dispatch, activeProfileId]);
   
   const openReportModal = async () => {
     setIsFetchingReports(true);
@@ -340,7 +470,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   };
 
   const handleAddReportFromModal = useCallback(async (reportId: string) => {
-    if (!reportId) return;
+    if (!reportId || !activeProfileId) return;
     try {
       const response = await axios.get(`${API_URL}/reports/${reportId}`);
       const reportToAdd: Report = response.data;
@@ -348,8 +478,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
       const result = createNodeAndEdgeFromReport(reportToAdd);
       if (result) {
         const { node, edge } = result;
-        const userId = 'user1';
-        dispatch(addNodeToTopology({ userId, node, edges: [edge] }));
+        dispatch(addNodeToTopology({ profileId: activeProfileId, node, edges: [edge] }));
         setIsModalOpen(false);
       } else {
          console.error('토폴로지에 추가할 유효하지 않은 리포트입니다.', { reportToAdd });
@@ -357,14 +486,12 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
     } catch (error) {
       console.error(`리포트 노드 추가 중 오류 발생 (ID: ${reportId}):`, error);
     }
-  }, [dispatch]);
+  }, [dispatch, activeProfileId]);
   
   useEffect(() => {
     if (simpleMode) return;
     const newElements = generateTopologyElements();
     setElements(newElements);
-    if (cyRef.current) cyRef.current.removeAllListeners();
-    return () => { if (cyRef.current) cyRef.current.removeAllListeners(); };
   }, [currentScan, currentVulnerability, userTopology, generateTopologyElements, simpleMode]);
   
   const processedElements = useMemo(() => {
@@ -391,7 +518,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   };
   
   const handleZoomIn = useCallback(() => cyRef.current?.zoom(cyRef.current.zoom() * 1.2), []);
-  const handleZoomOut = useCallback(() => cyRef.current?.zoom(cyRef.current.zoom() * 0.8), []);
+  const handleZoomOut = useCallback(() => cyRef.current?.zoom(cyRef.current.zoom() / 1.2), []);
   const handleResetZoom = useCallback(() => cyRef.current?.fit(), []);
   
   const generateNodeSummary = useCallback((node: TopologyNode) => {
@@ -420,10 +547,13 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
     }
   }, [currentReport, userTopology, simpleMode, handleAddReportNode]);
   
-  const setCyReference = useCallback((cytoscapeInstance: any) => {
+  const setCyReference = useCallback((cytoscapeInstance: cytoscape.Core) => {
     if (!cytoscapeInstance) return;
     cyRef.current = cytoscapeInstance;
-    cytoscapeInstance.off('tap', 'node').on('tap', 'node', (event: any) => handleNodeClick(event.target.id()));
+
+    // 기존 리스너를 제거하고 최신 핸들러로 새로 등록
+    cytoscapeInstance.removeAllListeners();
+    cytoscapeInstance.on('tap', 'node', (event: any) => handleNodeClick(event.target.id()));
   }, [handleNodeClick]);
 
   return (
@@ -438,9 +568,14 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
               </Button>
             )}
             {!simpleMode && (
-              <Button variant="destructive" size="sm" title="토폴로지 초기화" onClick={resetTopology}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+              <>
+                <Button variant="outline" size="sm" title="선택한 노드 삭제" onClick={handleDeleteSelected}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button variant="destructive" size="sm" title="토폴로지 초기화" onClick={resetTopology}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -506,7 +641,7 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
                       <div className="p-4 bg-secondary/50 rounded mb-4">
                         <div className="flex items-center justify-between mb-1">
                           <h4 className="text-sm font-medium text-secondary-foreground">노드 정보</h4>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div className="text-sm"><span className="text-muted-foreground">호스트:</span> {selectedNode.ip_address || selectedNode.label}</div>

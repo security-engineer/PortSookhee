@@ -9,7 +9,6 @@ import VulnerabilityResults from './features/VulnerabilityResults';
 import ScanHistory from './features/ScanHistory';
 import VpnManager from './features/VpnManager';
 import ReportDetail from './features/ReportDetail';
-import ProfileManager from './features/ProfileManager';
 import ProfileManagerTest from './features/ProfileManagerTest';
 import BasicTest from './features/BasicTest';
 import ProfileSelector from './components/ProfileSelector';
@@ -38,9 +37,10 @@ const App: React.FC = () => {
         <nav className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
-              <div className="flex-shrink-0">
+              <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+                <img src="/sookhee.jpg" alt="PortSookhee" className="w-14 h-8 rounded-full" />
                 <span className="text-xl font-bold">PortSookhee</span>
-              </div>
+              </Link>
               
               {/* 중앙 배치 네비게이션 */}
               <div className="flex-grow flex justify-center">

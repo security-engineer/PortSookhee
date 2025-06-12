@@ -475,7 +475,7 @@ const ReportDetail: React.FC = () => {
       </Card>
       
       {/* 메모리 사용량을 줄이기 위해 showAddReportButton을 false로 설정 */}
-      {currentReport && !isLoading && (
+      {/* {currentReport && !isLoading && (
         <div className="mt-4">
           <Card>
             <CardHeader>
@@ -483,11 +483,19 @@ const ReportDetail: React.FC = () => {
               <CardDescription>토폴로지 탭을 선택하여 네트워크 구조를 확인하세요</CardDescription>
             </CardHeader>
             <CardContent>
-              토폴로지에 이 리포트를 추가하려면 <Button variant="link" onClick={() => navigate(`/?add_report=${currentReport.report_id}`)}>토폴로지 페이지로 이동하여 추가</Button>하세요.
+              {currentReport && currentReport.report_id ? (
+                <p>
+                  토폴로지에 이 리포트를 추가하려면 <Button variant="link" onClick={() => navigate(`/?add_report=${currentReport.report_id}`)}>토폴로지 페이지로 이동하여 추가</Button>하세요.
+                </p>
+              ) : (
+                <p className="text-yellow-600">
+                  이 리포트는 ID가 없어 토폴로지에 추가할 수 없습니다. 관리자에게 문의하세요.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
-      )}
+      )} */}
     </>
   );
 };
