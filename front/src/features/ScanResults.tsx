@@ -259,43 +259,46 @@ const ScanResults: React.FC = () => {
                 <h3 className="text-lg font-medium">{host.host}</h3>
                 <div className="grid grid-cols-2 gap-4 mb-2">
                   <div>
-                    <span className="text-sm font-medium">상태:</span>{' '}
-                    <Badge variant={host.state === 'up' ? 'success' : 'destructive'}>
-                      {host.state}
-                    </Badge>
+                    <p className="text-sm">
+                      <strong>상태:</strong> <Badge variant={host.state === 'up' ? 'success' : 'secondary'}>{host.state}</Badge>
+                    </p>
+                    {host.os && (
+                    <div>
+                      <span className="text-sm font-medium">OS:</span>{' '}
+                      {host.os?.name}
+                    </div>
+                  )}
                   </div>
-                  <div>
-                    <span className="text-sm font-medium">OS:</span>{' '}
-                    {host.os.name} (정확도: {host.os.accuracy})
-                  </div>
-                </div>
-                
-                <h4 className="text-md font-medium mt-3 mb-2">포트</h4>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>포트</TableHead>
-                        <TableHead>상태</TableHead>
-                        <TableHead>서비스</TableHead>
-                        <TableHead>버전</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {host.ports.map((port: PortInfo, portIndex: number) => (
-                        <TableRow key={portIndex}>
-                          <TableCell>{port.port}</TableCell>
-                          <TableCell>
-                            <Badge variant={port.state === 'open' ? 'success' : 'secondary'}>
-                              {port.state}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{port.service}</TableCell>
-                          <TableCell>{port.product} {port.version}</TableCell>
+                  
+                  <h4 className="text-md font-semibold mt-4 mb-2">열린 포트</h4>
+                  {host.ports && host.ports.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>포트</TableHead>
+                          <TableHead>상태</TableHead>
+                          <TableHead>서비스</TableHead>
+                          <TableHead>버전 정보</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {host.ports.map((port: PortInfo, portIndex: number) => (
+                          <TableRow key={portIndex}>
+                            <TableCell>{port.port_id}</TableCell>
+                            <TableCell>
+                              <Badge variant={port.state === 'open' ? 'success' : 'secondary'}>
+                                {port.state}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{port.service}</TableCell>
+                            <TableCell>{port.service} {port.version}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">열린 포트가 없습니다.</p>
+                  )}
                 </div>
               </div>
             ))}

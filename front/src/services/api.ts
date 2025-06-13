@@ -130,9 +130,10 @@ const apiService = {
   },
 
   // 저장된 리포트 목록 조회
-  getReportList: async (): Promise<ApiResponse> => {
+  getReportList: async (profileId?: string): Promise<ApiResponse> => {
     try {
-      const response: AxiosResponse = await apiClient.get('/reports');
+      const config = profileId ? { params: { profile_id: profileId } } : {};
+      const response: AxiosResponse = await apiClient.get('/reports', config);
       return {
         data: response.data,
         status: response.status,

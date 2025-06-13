@@ -172,6 +172,21 @@ export const addScanToTopology = createAsyncThunk(
         scanResult.hosts.forEach((host: any) => {
           // 이미 존재하는 노드인지 확인
           const existingNode = currentTopology.nodes.find(n => n.id === host.host);
+          
+          let vulnCount = 0;
+          let highRiskCount = 0;
+
+          if (host.ports && Array.isArray(host.ports)) {
+            host.ports.forEach((port: any) => {
+              if (port.vulnerabilities && Array.isArray(port.vulnerabilities)) {
+                vulnCount += port.vulnerabilities.length;
+                highRiskCount += port.vulnerabilities.filter(
+                  (vuln: any) => (vuln.cvss_score ?? 0) >= 7.0
+                ).length;
+              }
+            });
+          }
+
           if (!existingNode) {
             // 호스트 노드 추가
             const hostNode: TopologyNode = {
@@ -180,14 +195,16 @@ export const addScanToTopology = createAsyncThunk(
               type: 'host',
               ip_address: host.host,
               state: host.state,
-              vulnerabilities_count: 0, // 취약점 결과가 있으면 계산 필요
-              high_risk_count: 0, // 취약점 결과가 있으면 계산 필요
+              vulnerabilities_count: vulnCount,
+              high_risk_count: highRiskCount,
               description: `스캔된 호스트: ${host.host}`,
               custom_data: {
                 role: 'node',
                 host: host,
                 scan_id: scanResult.scan_id,
-                timestamp: scanResult.timestamp
+                timestamp: scanResult.timestamp,
+                vulnCount: vulnCount,
+                highRiskCount: highRiskCount,
               }
             };
             
@@ -202,6 +219,22 @@ export const addScanToTopology = createAsyncThunk(
             };
             
             newEdges.push(edge);
+          } else {
+            // 기존 노드 업데이트
+            const nodeIndex = currentTopology.nodes.findIndex(n => n.id === host.host);
+            if (nodeIndex > -1) {
+              const updatedNode = {
+                ...currentTopology.nodes[nodeIndex],
+                vulnerabilities_count: vulnCount,
+                high_risk_count: highRiskCount,
+              };
+              if (updatedNode.custom_data) {
+                updatedNode.custom_data.vulnCount = vulnCount;
+                updatedNode.custom_data.highRiskCount = highRiskCount;
+                updatedNode.custom_data.host = host; // 최신 host 정보로 업데이트
+              }
+              currentTopology.nodes[nodeIndex] = updatedNode;
+            }
           }
         });
       }
@@ -314,8 +347,11 @@ const topologySlice = createSlice({
     setSelectedNode: (state, action: PayloadAction<TopologyNode | null>) => {
       state.selectedNode = action.payload;
     },
-    clearSelectedNode: (state) => {
+    resetTopologyState: (state) => {
+      state.userTopology = null;
       state.selectedNode = null;
+      state.loading = false;
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
@@ -389,6 +425,6 @@ const topologySlice = createSlice({
   },
 });
 
-export const { setSelectedNode, clearSelectedNode } = topologySlice.actions;
+export const { setSelectedNode, resetTopologyState } = topologySlice.actions;
 
 export default topologySlice.reducer; 

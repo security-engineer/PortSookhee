@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import cytoscape, { EdgeSingular, NodeSingular } from 'cytoscape';
-import axios from 'axios';
+import apiService from '../services/api';
 import { RootState } from '../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -321,8 +321,8 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
     if (reportIdToAdd && !simpleMode) {
       const fetchAndSetReport = async () => {
         try {
-          const response = await axios.get(`${API_URL}/reports/${reportIdToAdd}`);
-          dispatch(setCurrentReport(response.data));
+          const reportResponse = await apiService.getReportById(reportIdToAdd);
+          dispatch(setCurrentReport(reportResponse.data));
         } catch (error) {
           console.error(`리포트 ID ${reportIdToAdd} 가져오기 실패:`, error);
         } finally {
@@ -455,11 +455,17 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
     }
   }, [currentReport, dispatch, activeProfileId]);
   
+  
+
   const openReportModal = async () => {
+    if (!activeProfileId) {
+      console.warn("프로필이 선택되지 않아 리포트를 불러올 수 없습니다.");
+      return;
+    }
     setIsFetchingReports(true);
     try {
-      const response = await axios.get(`${API_URL}/reports`);
-      const reports = Array.isArray(response.data) ? response.data : response.data.reports || [];
+      const reportListResponse = await apiService.getReportList(activeProfileId);
+      const reports = Array.isArray(reportListResponse.data) ? reportListResponse.data : reportListResponse.data.reports || [];
       setReportsForModal(reports);
       setIsModalOpen(true);
     } catch (error) {
@@ -472,8 +478,15 @@ const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   const handleAddReportFromModal = useCallback(async (reportId: string) => {
     if (!reportId || !activeProfileId) return;
     try {
-      const response = await axios.get(`${API_URL}/reports/${reportId}`);
-      const reportToAdd: Report = response.data;
+      const reportResponse = await apiService.getReportById(reportId);
+      const reportToAdd: Report = reportResponse.data;
+
+      // --- 중요: 프로필 소유권 검증 ---
+      if (reportToAdd.profile_id && reportToAdd.profile_id !== activeProfileId) {
+        alert('다른 프로필에 속한 리포트는 현재 토폴로지에 추가할 수 없습니다.');
+        return;
+      }
+
       if (reportToAdd && !reportToAdd.report_id) reportToAdd.report_id = reportId;
       const result = createNodeAndEdgeFromReport(reportToAdd);
       if (result) {

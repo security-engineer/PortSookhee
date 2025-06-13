@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { UserCircle, PlusCircle, Check, ChevronDown, Trash2 } from 'lucide-react';
 import apiService from '../services/api';
+import { resetTopologyState } from '../store/slices/topologySlice';
+import { useAppDispatch } from '../store/hooks';
 
 const ProfileSelector: React.FC = () => {
   const [profiles, setProfiles] = useState<string[]>(['default']);
@@ -11,6 +14,7 @@ const ProfileSelector: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
 
   // 프로필 목록 로드
   const loadProfiles = async () => {
@@ -37,6 +41,9 @@ const ProfileSelector: React.FC = () => {
       return;
     }
 
+    // 상태 초기화
+    dispatch(resetTopologyState());
+    
     setIsLoading(true);
     try {
       console.log(`프로필 변경 시도: ${profileName}`);
